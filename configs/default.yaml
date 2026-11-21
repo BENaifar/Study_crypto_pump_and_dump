@@ -1,0 +1,154 @@
+seed: 1234
+
+paths:
+  telegram:
+    raw_dir: datasets/telegram/raw
+    channel_list: datasets/telegram/raw/Pump_channel2
+    crypto_symbol: datasets/telegram/raw/crypto_symbol
+    exchange: datasets/telegram/raw/exchange
+    session_file: datasets/telegram/anon
+  keyword_filter:
+    walk_dir: datasets/telegram/raw
+    load_dir: datasets/telegram/raw
+    output_dir: datasets/telegram/PreSelection
+  label_messages:
+    walk_dir: datasets/telegram/PreSelection
+    load_dir: datasets/telegram/PreSelection
+    label_file: datasets/telegram/Labeled/label.txt
+  message_features:
+    walk_dir: datasets/telegram/PreSelection
+    load_dir: datasets/telegram                  # Q03
+    crypto_symbol: datasets/telegram/raw/crypto_symbol
+    exchange: datasets/telegram/raw/exchange
+    output: datasets/telegram/preselect_sample   # Q04
+  classifier:
+    preselect_input: datasets/telegram/PreSelection/preselect_sample   # Q04
+    label_file: datasets/telegram/Labeled/label.txt
+    predict_output: datasets/telegram/Labeled/pred_pump_message.csv
+  sessions:
+    pred_input: datasets/telegram/Labeled/pred_pump_message.csv
+    raw_dir: datasets/telegram/raw
+    output_dir: datasets/telegram/Labeled
+  session_labeler:
+    walk_dir: datasets/telegram/Labeled
+    browsed_input: datasets/telegram/Labeled/pump_attack_browsed.txt        # Q11
+    browsed_output: datasets/telegram/Labeled/pump_attack_browsed_test.txt
+    attack_output: datasets/telegram/Labeled/pump_attack_test.txt
+  pd_log:
+    raw: datasets/telegram/Labeled/PD_logs_raw.txt
+    cleaned: datasets/telegram/Labeled/PD_logs_cleaned.txt
+  klines:
+    pd_log: datasets/telegram/Labeled/PD_logs_cleaned.txt
+    store_directory: datasets/binance            # dirname(utility.py)
+  process_klines:
+    pd_log: datasets/telegram/Labeled/PD_logs_cleaned.txt
+    walk_dir: datasets/data                      # Q17
+    unzip_dir: datasets/data/unzip
+    concat_dir: datasets/data/concat
+  positive_samples:
+    pd_log: datasets/telegram/Labeled/PD_logs_cleaned.txt
+    concat_dir: datasets/legacy_root/Binance/data/concat   # Q18
+    coingecko_json: datasets/featgen/raw/coinDate2Statistics_pred3d.json
+    output: datasets/featgen/pump_sample_raw.csv            # Q22
+  negative_samples:
+    pd_log: datasets/telegram/Labeled/PD_logs_cleaned.txt
+    required_files: datasets/featgen/raw/neg_binance_required_file_name.txt
+    symbol_map: datasets/featgen/raw/binanceSymbol2CoinId.json
+    download_store_directory: datasets/binance
+    zip_walk_dir: datasets/binance/data/spot
+    unzip_dir: datasets/binance/data/unzip
+    concat_read_unzip_dir: datasets/legacy_root/Binance/data/unzip
+    concat_output_dir: datasets/binance/data/concat
+    concat_list_dir: datasets/binance/data/concat
+    statistics_dir: datasets/legacy_root/Binance/data/concat
+    gecko_txt: datasets/featgen/raw/neg_coin_gecko_statistics.txt
+  coingecko_fetch:
+    pd_log: datasets/telegram/Labeled/PD_logs_cleaned.txt
+    symbol_map: datasets/featgen/raw/binanceSymbol2CoinId.json
+  dataset:
+    pos_input: datasets/featgen/feature/pump_sample_raw.csv   # Q22
+    neg_input: datasets/featgen/feature/neg_sample_raw.csv    # Q24
+    train_output: datasets/featgen/train_sample.csv           # Q29
+    test_output: datasets/featgen/test_sample.csv
+  model:
+    train_input: datasets/featgen/feature/train_sample.csv    # Q29
+    test_input: datasets/featgen/feature/test_sample.csv
+    wv_embedding: datasets/featgen/feature/wv_embedding.pkl
+    checkpoint_root: datasets/seqmodel
+  verification:
+    pd_log: datasets/telegram/Labeled/PD_logs_cleaned.txt
+    pd_log_raw: datasets/telegram/Labeled/PD_logs_raw.txt
+    coingecko_json: datasets/featgen/raw/coinDate2Statistics_pred3d.json
+    store_directory: datasets/verification
+    report_dir: reports
+
+keyword_filter:
+  skip_tokens: ["", "the", "we", "min", "coin", "am", "now", "pump", "buy", "profit", "profits", "for", "a", "in", "sure", "get", "less"]
+  keywords: ["target", "buy", "pump"]
+message_features:
+  keywords: ["target", "buy", "pump", "left", "announcement", "hold"]
+  on_time_minutes: [58, 59, 0, 1, 2, 28, 29, 30, 31, 32]
+classifier:
+  tfidf: {ngram_range: [1, 3], min_df: 5, max_features: 20000, use_idf: true}
+  test_size: 0.3
+  split_random_state: 42
+  lr: {random_state: 123, C: 0.08}
+  gbdt: {learning_rate: 0.1, min_samples_split: 300, min_samples_leaf: 20, max_depth: 8, max_features: sqrt, subsample: 0.8, random_state: 10}
+  rf: {n_estimators: 10, criterion: entropy, random_state: 0}
+  mnb: {alpha: 0.05}
+  threshold_variable: 0.25     # Q09: declared but ignored
+  threshold_literal: 0.25      # Q09: the value actually applied
+sessions:
+  gap_hours: 12
+  min_pred_pump_cnt_exclusive: 1
+labeling:
+  message_min_date: "2021-01-01"
+  session_min_date: "2019-01-01"
+klines:
+  interval: "1m"
+  last_month_day_threshold: 3
+  last_month_days_long: 31
+  last_month_days_short: 15
+negative_samples:
+  download_flag: false
+  zip_flag: false
+  concat_flag: false
+  coin_gecko_flag: false
+  gecko_statistics: false
+  gecko_sleep_s: 1.3
+features:
+  bucket_num: 72
+  bucket_size_min: 60
+  pre_anchor_offset_min: 30
+  windows: [1, 3, 6, 12, 24, 36, 48, 60, 72]
+  insider_offset_min: 60
+  highest_window_min: 60
+dataset:
+  split_timestamp_unix: 1620579621000
+  max_seq_len_build: 50
+model:
+  model: snn
+  max_seq_length: 10
+  do_train: true
+  do_eval: false
+  batch_size: 256
+  epoch: 30
+  learning_rate: 0.0005
+  num_train_steps: 1000000
+  num_warmup_steps: 100
+  save_checkpoints_steps: 8000
+  dropout_rate: 0.2
+  checkpointDir: ckpt_dir
+  init_checkpoint: null
+  use_tpu: false
+  data_dir: ./data/
+  sample_num: 132314
+  eval_epoch_start: 15
+  eval_epoch_end_inclusive: 30
+coingecko_fetch:
+  symbols: ["ARN", "YOYO", "ATM", "BQX", "BTCST", "DATA", "DREP", "EDO", "EZ", "FLM", "GNT", "GXS", "INS", "ONG", "QSP", "TCT"]
+  sleep_s: 1.5
+telegram_fetch:
+  limit: 500
+  total_count_limit: 500000
+  entity_slice_start: 13
