@@ -117,6 +117,44 @@ uv run pnd build-dataset --set paths.dataset.pos_input=datasets/featgen/pump_sam
 `seed: 1234` in the config (or `--seed N`) seeds python, numpy, TensorFlow and `tf.data.shuffle`. `--seed null`
 restores the original unseeded behaviour. The original hard-coded sklearn `random_state`s are unchanged.
 
+## Notebooks (project brief)
+
+The `notebooks/` folder answers the project brief (*Détection et prédiction des schémas « Pump-and-Dump »*). One
+notebook per step, each independent: it loads the raw data itself and never reads another notebook's outputs. These
+notebooks follow the **paper**, not the bug-for-bug port: the methods are written from scratch, and only the
+authors' data is reused. Shared data access and statistics live in `src/pnd_paper/`.
+
+| Notebook | Brief step |
+|---|---|
+| `I0_data_acquisition` | data download (Binance archive), audit against the brief and [A1] |
+| `I1_literature_synthesis` | I.1 four questions, MAR and MiCA |
+| `I2_descriptive_statistics` | I.2 distributions, χ², Gini, Kolmogorov–Smirnov |
+| `I3_event_study` | I.3 market model, CAR tests (Student, Wilcoxon, BMP, Holm), abnormal volume, minute anatomy |
+| `I4_intra_channel_homogeneity` | I.4 cosine homogeneity, permutation test, Benjamini–Hochberg |
+| `I5_coordination_network` | I.5 TF-IDF bipartite network, Louvain, date-permutation null model |
+| `IIA1_arma_garch` | II.A.1 ADF, KPSS, Ljung–Box, ARMA–GARCH–t (MLE written from scratch) |
+| `IIA2_cusum_isolation_forest` | II.A.2–3 CUSUM with ARL₀ calibration, Isolation Forest, McNemar |
+| `IIB_machine_learning` | II.B ranking dataset, LR, conditional logit, RF, LightGBM (binary and per-event softmax), Optuna, SHAP |
+| `IIC_deep_learning` | II.C DNN, LSTM, GRU, TCN, SNN, SNN_S in PyTorch, ablations, attention weights |
+| `IID_bonus_btc_forecast` | II.D ARIMA, ARIMAX, LSTM on VADER sentiment, Diebold–Mariano |
+| `00_complete_report` | all steps assembled with a validation chapter against [A1] (generated) |
+
+```bash
+uv sync --extra dev --extra paper
+uv run playwright install chromium            # PDF export (nbconvert webpdf)
+make all                                      # = uv run python notebooks/run_all.py (QUICK sizes)
+make all FULL=1                               # sizes required by the brief (PND_QUICK=0)
+uv run python notebooks/run_all.py IIB        # one notebook (prefix match)
+```
+
+Outputs:
+- executed notebooks in `notebooks/`;
+- PDFs in `notebooks/pdf/`: the step PDFs show code, the complete report hides it;
+- tables and figures in `results/<notebook>/`;
+- the Binance download cache in `datasets/paper_cache/`.
+
+The notebook sources are kept as percent-format scripts in `notebooks/_src/`; `run_all.py` rebuilds the `.ipynb` files from them.
+
 ## Layout
 
 ```
